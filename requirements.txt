@@ -1,0 +1,5 @@
+# ComfyUI-BAIBAOXIANG minimal dependencies
+# Note: torch is usually provided by the ComfyUI runtime environment.
+
+numpy
+Pillow
