@@ -17,23 +17,23 @@ except Exception:
 
 
 class KeywordImageBatch:
+    MAX_OUTPUT_IMAGES = 9
+    MAX_KEYWORDS = 20
+    IMAGE_LABELS = ("图一", "图二", "图三", "图四", "图五", "图六", "图七", "图八", "图九")
+
     def __init__(self):
         pass
 
     @classmethod
     def INPUT_TYPES(s):
+        keyword_inputs = {
+            f"关键词{i}": ("STRING", {"default": "", "multiline": False})
+            for i in range(1, s.MAX_KEYWORDS + 1)
+        }
         return {
             "required": {
                 "文件夹路径": ("STRING", {"default": "", "multiline": False}),
-                "关键词1": ("STRING", {"default": "", "multiline": False}),
-                "关键词2": ("STRING", {"default": "", "multiline": False}),
-                "关键词3": ("STRING", {"default": "", "multiline": False}),
-                "关键词4": ("STRING", {"default": "", "multiline": False}),
-                "关键词5": ("STRING", {"default": "", "multiline": False}),
-                "关键词6": ("STRING", {"default": "", "multiline": False}),
-                "关键词7": ("STRING", {"default": "", "multiline": False}),
-                "关键词8": ("STRING", {"default": "", "multiline": False}),
-                "关键词9": ("STRING", {"default": "", "multiline": False}),
+                **keyword_inputs,
                 "自动": ("BOOLEAN", {"default": True, "label_on": "开启", "label_off": "关闭"}),
                 "最大提交数": ("INT", {"default": 10, "min": 1, "max": 500, "step": 1}),
                 "序号": ("INT", {"default": 0, "min": 0, "max": 99999, "step": 1, "display": "hidden"}),
@@ -50,8 +50,8 @@ class KeywordImageBatch:
 
     INPUT_IS_LIST = True
 
-    RETURN_TYPES = ("STRING", "IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE")
-    RETURN_NAMES = ("字符串", "图一", "图二", "图三", "图四", "图五", "图六")
+    RETURN_TYPES = ("STRING",) + ("IMAGE",) * MAX_OUTPUT_IMAGES
+    RETURN_NAMES = ("字符串",) + IMAGE_LABELS
     FUNCTION = "run"
     CATEGORY = "百宝箱/队列"
     
@@ -134,17 +134,45 @@ class KeywordImageBatch:
         with urllib.request.urlopen(req, timeout=10) as resp:
             resp.read()
 
-    def run(self, 文件夹路径, 关键词1, 关键词2, 关键词3, 关键词4, 关键词5, 关键词6, 关键词7, 关键词8, 关键词9, 自动, 最大提交数, 序号, 字符串列表=None, prompt=None, extra_pnginfo=None, unique_id=None):
+    def _collect_keywords(self, raw_keywords):
+        keywords = []
+        for keyword in raw_keywords:
+            value = self._unwrap_scalar(keyword)
+            keywords.append("" if value is None else str(value))
+        return keywords
+
+    def run(
+        self,
+        文件夹路径,
+        关键词1,
+        关键词2,
+        关键词3,
+        关键词4,
+        关键词5,
+        关键词6,
+        关键词7,
+        关键词8,
+        关键词9,
+        关键词10,
+        关键词11,
+        关键词12,
+        关键词13,
+        关键词14,
+        关键词15,
+        关键词16,
+        关键词17,
+        关键词18,
+        关键词19,
+        关键词20,
+        自动,
+        最大提交数,
+        序号,
+        字符串列表=None,
+        prompt=None,
+        extra_pnginfo=None,
+        unique_id=None,
+    ):
         文件夹路径 = self._unwrap_scalar(文件夹路径)
-        关键词1 = self._unwrap_scalar(关键词1)
-        关键词2 = self._unwrap_scalar(关键词2)
-        关键词3 = self._unwrap_scalar(关键词3)
-        关键词4 = self._unwrap_scalar(关键词4)
-        关键词5 = self._unwrap_scalar(关键词5)
-        关键词6 = self._unwrap_scalar(关键词6)
-        关键词7 = self._unwrap_scalar(关键词7)
-        关键词8 = self._unwrap_scalar(关键词8)
-        关键词9 = self._unwrap_scalar(关键词9)
         端口号 = COMFYUI_PORT
         自动 = bool(self._unwrap_scalar(自动))
         最大提交数 = int(self._unwrap_scalar(最大提交数))
@@ -152,7 +180,12 @@ class KeywordImageBatch:
         prompt = self._unwrap_scalar(prompt)
         unique_id = self._unwrap_scalar(unique_id)
 
-        keywords = [关键词1, 关键词2, 关键词3, 关键词4, 关键词5, 关键词6, 关键词7, 关键词8, 关键词9]
+        keywords = self._collect_keywords([
+            关键词1, 关键词2, 关键词3, 关键词4, 关键词5,
+            关键词6, 关键词7, 关键词8, 关键词9, 关键词10,
+            关键词11, 关键词12, 关键词13, 关键词14, 关键词15,
+            关键词16, 关键词17, 关键词18, 关键词19, 关键词20,
+        ])
         prompts = self._to_prompt_list(字符串列表)
 
         if not prompts:
@@ -188,7 +221,7 @@ class KeywordImageBatch:
 
         current_text = prompts[idx]
         matched_keywords = self._match_keywords_in_text(current_text, keywords)
-        matched_keywords = matched_keywords[:6]
+        matched_keywords = matched_keywords[:self.MAX_OUTPUT_IMAGES]
 
         append_str = []
         matched_images = []
@@ -198,31 +231,20 @@ class KeywordImageBatch:
                 img_path = keyword_images[keyword]
                 img_tensor = self._load_image_tensor(img_path)
                 matched_images.append(img_tensor)
-                if i == 0:
-                    append_str.append(f"图一是{keyword}")
-                elif i == 1:
-                    append_str.append(f"图二是{keyword}")
-                elif i == 2:
-                    append_str.append(f"图三是{keyword}")
-                elif i == 3:
-                    append_str.append(f"图四是{keyword}")
-                elif i == 4:
-                    append_str.append(f"图五是{keyword}")
-                elif i == 5:
-                    append_str.append(f"图六是{keyword}")
+                append_str.append(f"{self.IMAGE_LABELS[i]}是{keyword}")
 
         if append_str:
             out_text = current_text + " " + "，".join(append_str)
         else:
             out_text = current_text
 
-        # 根据匹配的图片数量动态返回，最多6张
+        # 根据匹配的图片数量动态返回，最多9张
         result = [out_text]
         for img in matched_images:
             result.append(img)
 
-        # 补齐到6个图片输出（如果没有匹配到足够的图片）
-        while len(result) < 7:  # 1个字符串 + 6个图片
+        # 补齐到9个图片输出（如果没有匹配到足够的图片）
+        while len(result) < self.MAX_OUTPUT_IMAGES + 1:  # 1个字符串 + 9个图片
             result.append(torch.zeros((1, 64, 64, 3), dtype=torch.float32))
 
         return tuple(result)
