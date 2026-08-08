@@ -51,6 +51,12 @@ class FolderTaskBatch:
     FUNCTION = "run"
     CATEGORY = "百宝箱/队列"
 
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        # This node queues follow-up prompts as a side effect.  A NaN cache
+        # fingerprint never compares equal, so every manual queue run executes it.
+        return float("NaN")
+
     def _natural_key(self, value):
         return [int(part) if part.isdigit() else part.casefold() for part in re.split(r"(\d+)", value)]
 
