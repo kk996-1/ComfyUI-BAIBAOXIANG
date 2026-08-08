@@ -66,7 +66,19 @@ class FolderTaskBatch:
         # Accept either slash style so a workflow can move between Windows and Linux.
         portable_path = raw_path.replace("\\", "/")
         if os.path.isabs(raw_path) or ntpath.isabs(raw_path) or portable_path.startswith("/"):
-            raise ValueError("路径输入必须是 ComfyUI input 目录下的相对路径")
+            # Older workflow files may have saved the full input path from another
+            # computer, such as /root/comfyui/ComfyUI/input/B.  Keep only the
+            # part below input and resolve it against this ComfyUI instance.
+            parts = [part for part in portable_path.split("/") if part and part != "."]
+            input_index = next(
+                (index for index in range(len(parts) - 1, -1, -1) if parts[index].casefold() == "input"),
+                None,
+            )
+            if input_index is None:
+                raise ValueError(
+                    "绝对路径无法映射到当前 ComfyUI input 目录；请填写 input 目录下的相对路径"
+                )
+            portable_path = "/".join(parts[input_index + 1:])
 
         candidate = os.path.realpath(os.path.join(input_root, portable_path))
         try:
